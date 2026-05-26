@@ -1,1 +1,5 @@
 # Specify files that shouldn't be modified by Fern
+
+# Preserve our CI fix (ubuntu-20.04 → ubuntu-latest).
+# Fern's default workflow targets a deprecated runner.
+.github/workflows/ci.yml
