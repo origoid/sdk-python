@@ -2,4 +2,4 @@
 
 import typing
 
-SearchPepsRequest = typing.Union[typing.Optional[typing.Any]]
+SearchPepsRequest = typing.Union[typing.Any]

@@ -2,4 +2,4 @@
 
 import typing
 
-SearchSat69Request = typing.Union[typing.Optional[typing.Any]]
+SearchSat69Request = typing.Union[typing.Any]

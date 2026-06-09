@@ -1,0 +1,14 @@
+{
+  "cliVersion": "5.45.0",
+  "generatorName": "fernapi/fern-python-sdk",
+  "generatorVersion": "4.64.1",
+  "generatorConfig": {
+    "client_class_name": "OrigoID",
+    "package_name": "origoid",
+    "pydantic_config": {
+      "version": "v2"
+    }
+  },
+  "originGitCommit": "0bf2c29068052aea52e9f3bb0bb566fcd13b213a",
+  "sdkVersion": "0.2.0"
+}

@@ -8,10 +8,12 @@ The Origoid Python library provides convenient access to the Origoid APIs from P
 ## Table of Contents
 
 - [Installation](#installation)
+- [Reference](#reference)
 - [Usage](#usage)
 - [Async Client](#async-client)
 - [Exception Handling](#exception-handling)
 - [Advanced](#advanced)
+  - [Access Raw Response Data](#access-raw-response-data)
   - [Retries](#retries)
   - [Timeouts](#timeouts)
   - [Custom Client](#custom-client)
@@ -23,6 +25,10 @@ The Origoid Python library provides convenient access to the Origoid APIs from P
 pip install origoid
 ```
 
+## Reference
+
+A full reference for this library is available [here](https://github.com/origoid/sdk-python/blob/HEAD/./reference.md).
+
 ## Usage
 
 Instantiate and use the client with the following:
@@ -31,14 +37,15 @@ Instantiate and use the client with the following:
 from origoid import OrigoID
 
 client = OrigoID(
-    api_key="YOUR_API_KEY",
+    api_key="<value>",
 )
+
 client.authentication.issue_token()
 ```
 
 ## Async Client
 
-The SDK also exports an `async` client so that you can make non-blocking calls to our API.
+The SDK also exports an `async` client so that you can make non-blocking calls to our API. Note that if you are constructing an Async httpx client class to pass into this client, use `httpx.AsyncClient()` instead of `httpx.Client()` (e.g. for the `httpx_client` parameter of this client).
 
 ```python
 import asyncio
@@ -46,7 +53,7 @@ import asyncio
 from origoid import AsyncOrigoID
 
 client = AsyncOrigoID(
-    api_key="YOUR_API_KEY",
+    api_key="<value>",
 )
 
 
@@ -74,13 +81,28 @@ except ApiError as e:
 
 ## Advanced
 
+### Access Raw Response Data
+
+The SDK provides access to raw response data, including headers, through the `.with_raw_response` property.
+The `.with_raw_response` property returns a "raw" client that can be used to access the `.headers` and `.data` attributes.
+
+```python
+from origoid import OrigoID
+
+client = OrigoID(...)
+response = client.authentication.with_raw_response.issue_token(...)
+print(response.headers)  # access the response headers
+print(response.status_code)  # access the response status code
+print(response.data)  # access the underlying object
+```
+
 ### Retries
 
 The SDK is instrumented with automatic retries with exponential backoff. A request will be retried as long
-as the request is deemed retriable and the number of retry attempts has not grown larger than the configured
+as the request is deemed retryable and the number of retry attempts has not grown larger than the configured
 retry limit (default: 2).
 
-A request is deemed retriable when any of the following HTTP status codes is returned:
+A request is deemed retryable when any of the following HTTP status codes is returned:
 
 - [408](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/408) (Timeout)
 - [429](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429) (Too Many Requests)
@@ -89,7 +111,7 @@ A request is deemed retriable when any of the following HTTP status codes is ret
 Use the `max_retries` request option to configure this behavior.
 
 ```python
-client.authentication.issue_token(..., {
+client.authentication.issue_token(..., request_options={
     "max_retries": 1
 })
 ```
@@ -99,17 +121,12 @@ client.authentication.issue_token(..., {
 The SDK defaults to a 60 second timeout. You can configure this with a timeout option at the client or request level.
 
 ```python
-
 from origoid import OrigoID
 
-client = OrigoID(
-    ...,
-    timeout=20.0,
-)
-
+client = OrigoID(..., timeout=20.0)
 
 # Override timeout for a specific method
-client.authentication.issue_token(..., {
+client.authentication.issue_token(..., request_options={
     "timeout_in_seconds": 1
 })
 ```
@@ -118,6 +135,7 @@ client.authentication.issue_token(..., {
 
 You can override the `httpx` client to customize it for your use-case. Some common use-cases include support for proxies
 and transports.
+
 ```python
 import httpx
 from origoid import OrigoID
@@ -125,7 +143,7 @@ from origoid import OrigoID
 client = OrigoID(
     ...,
     httpx_client=httpx.Client(
-        proxies="http://my.test.proxy.example.com",
+        proxy="http://my.test.proxy.example.com",
         transport=httpx.HTTPTransport(local_address="0.0.0.0"),
     ),
 )

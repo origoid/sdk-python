@@ -2,4 +2,4 @@
 
 import typing
 
-ExtractCsfRequest = typing.Union[typing.Optional[typing.Any]]
+ValidateCfdiRequest = typing.Union[typing.Any]

@@ -2,4 +2,4 @@
 
 import typing
 
-ValidateVoterListRequest = typing.Union[typing.Optional[typing.Any]]
+ValidateVoterListRequest = typing.Union[typing.Any]
