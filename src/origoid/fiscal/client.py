@@ -100,7 +100,7 @@ class FiscalClient:
             api_key="YOUR_API_KEY",
         )
         client.fiscal.extract_csf(
-            request={"rfc": "PELJ900101AAA", "cif": "12345678901"},
+            request={"rfc": "PELJ900101AAA", "cif": "24010199999"},
         )
         """
         _response = self._raw_client.extract_csf(request=request, request_options=request_options)
@@ -243,7 +243,7 @@ class AsyncFiscalClient:
 
         async def main() -> None:
             await client.fiscal.extract_csf(
-                request={"rfc": "PELJ900101AAA", "cif": "12345678901"},
+                request={"rfc": "PELJ900101AAA", "cif": "24010199999"},
             )
 
 

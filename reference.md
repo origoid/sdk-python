@@ -314,7 +314,7 @@ client.renapo.lookup_curp(
 
 Retrieves the official RENAPO CURP document ("Constancia de la CURP") as a PDF, together with the full validated record and the CURP's RENAPO status — the **same status matrix as `curp-validations`** (active, homonymy, deceased, apocryphal, judicial suspension, inactive). Use it when you need the citizen's official, printable certificate, not just the validated data.
 
-The PDF is returned **inline as base64** in `data.document.content`, alongside the parsed identity fields. This is a **synchronous** call.
+The PDF is returned **inline as base64** in `data.files[0].content`, alongside the parsed identity fields. This is a **synchronous** call.
 
 Optionally pass `generateRfc: true` to also receive the deterministic `personalInfo.rfc` (computed from the CURP, no SAT call) — identical to `curp-validations`.
 
@@ -726,7 +726,7 @@ Performs OCR on the front and back of a Mexican voter ID (INE / IFE) and returns
 
 What sets this endpoint apart is **integrated address normalization + geocoding**: the address printed on the INE is rarely clean — abbreviations, missing colonia, inconsistent casing. We normalize and enrich it automatically. You get back not only the raw address text, but also:
 
-- **`addressNormalized`**: corrected casing, expanded abbreviations (`AV.` → `AVENIDA`, `CALZ.` → `CALZADA`), validated postal code against the SEPOMEX directory, matched neighborhood / municipality / state from the official catalog, and `latitude` / `longitude` when the address resolves with confidence.
+- **`addressNormalized`**: the printed INE address, normalized and enriched (corrected casing, expanded abbreviations, validated postal code, and neighborhood / municipality / state matched from the official catalog). The `geocodingStatus` field reports the match confidence: `VERIFIED` (house- or street-level match), `PARTIAL` (locality or postal-code match), or `UNVERIFIED` (no confident match).
 - **`electoralGeography`**: derived electoral district, federal entity, and polling section — useful for cross-checking with `validateVoterList`.
 - **Document model detection** (E, G, H) and per-model security feature validation.
 - **MRZ + QR cross-validation**: when the back contains MRZ and QR, we read both and confirm they agree with the printed fields. Mismatches are flagged.
@@ -1375,7 +1375,7 @@ client.compliance.search_ofac(
 <dl>
 <dd>
 
-**Credits:** 1 per call.
+**Credits:** 2 per call.
 
 Searches the consolidated PEP (Politically Exposed Persons) database for a subject — covering active PEPs, former PEPs (`EX_PEP`), and their immediate family and close associates (`PEP_AFFINITY`, `EX_PEP_AFFINITY`).
 
@@ -1777,7 +1777,7 @@ client = OrigoID(
 )
 
 client.fiscal.extract_csf(
-    request={"rfc": "PELJ900101AAA", "cif": "12345678901"},
+    request={"rfc": "PELJ900101AAA", "cif": "24010199999"},
 )
 
 ```

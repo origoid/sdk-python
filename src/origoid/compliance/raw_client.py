@@ -318,7 +318,7 @@ class RawComplianceClient:
         self, *, request: SearchPepsRequest, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[Envelope]:
         """
-        **Credits:** 1 per call.
+        **Credits:** 2 per call.
 
         Searches the consolidated PEP (Politically Exposed Persons) database for a subject — covering active PEPs, former PEPs (`EX_PEP`), and their immediate family and close associates (`PEP_AFFINITY`, `EX_PEP_AFFINITY`).
 
@@ -720,7 +720,7 @@ class AsyncRawComplianceClient:
         self, *, request: SearchPepsRequest, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[Envelope]:
         """
-        **Credits:** 1 per call.
+        **Credits:** 2 per call.
 
         Searches the consolidated PEP (Politically Exposed Persons) database for a subject — covering active PEPs, former PEPs (`EX_PEP`), and their immediate family and close associates (`PEP_AFFINITY`, `EX_PEP_AFFINITY`).
 
