@@ -46,6 +46,13 @@ if typing.TYPE_CHECKING:
         IssteRecordDataPersonalInfo,
         IssteRecordDataPersonalInfoGender,
         IssteRecordDataPersonalInfoMaritalStatus,
+        LivenessData,
+        LivenessDataConfidence,
+        LivenessDataSelfieAnalysis,
+        LivenessDataSelfieAnalysisDetectionConfidence,
+        LivenessDataSelfieAnalysisImageQuality,
+        LivenessDataSelfieAnalysisIssuesItem,
+        LivenessDataSelfieAnalysisOrientation,
     )
     from .errors import TooManyRequestsError, UnauthorizedError
     from . import (
@@ -61,7 +68,7 @@ if typing.TYPE_CHECKING:
         social_security,
     )
     from .banking import ValidateCepRequest, ValidateCepResponse
-    from .biometrics import MatchFacesRequestDocumentType, MatchFacesResponse
+    from .biometrics import CheckLivenessResponse, MatchFacesRequestDocumentType, MatchFacesResponse
     from .client import AsyncOrigoID, OrigoID
     from .compliance import SearchPepsRequest, SearchSat69BRequest, SearchSat69Request
     from .environment import OrigoIDEnvironment
@@ -82,6 +89,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "CepValidationDataSenderAccountType": ".types",
     "CepValidationDataSpei": ".types",
     "CepValidationDataTimeline": ".types",
+    "CheckLivenessResponse": ".biometrics",
     "Envelope": ".types",
     "EnvelopeStatus": ".types",
     "ErrorDetail": ".types",
@@ -113,6 +121,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "IssteRecordDataPersonalInfo": ".types",
     "IssteRecordDataPersonalInfoGender": ".types",
     "IssteRecordDataPersonalInfoMaritalStatus": ".types",
+    "LivenessData": ".types",
+    "LivenessDataConfidence": ".types",
+    "LivenessDataSelfieAnalysis": ".types",
+    "LivenessDataSelfieAnalysisDetectionConfidence": ".types",
+    "LivenessDataSelfieAnalysisImageQuality": ".types",
+    "LivenessDataSelfieAnalysisIssuesItem": ".types",
+    "LivenessDataSelfieAnalysisOrientation": ".types",
     "LookupCurpRequestGender": ".renapo",
     "MatchFacesRequestDocumentType": ".biometrics",
     "MatchFacesResponse": ".biometrics",
@@ -174,6 +189,7 @@ __all__ = [
     "CepValidationDataSenderAccountType",
     "CepValidationDataSpei",
     "CepValidationDataTimeline",
+    "CheckLivenessResponse",
     "Envelope",
     "EnvelopeStatus",
     "ErrorDetail",
@@ -205,6 +221,13 @@ __all__ = [
     "IssteRecordDataPersonalInfo",
     "IssteRecordDataPersonalInfoGender",
     "IssteRecordDataPersonalInfoMaritalStatus",
+    "LivenessData",
+    "LivenessDataConfidence",
+    "LivenessDataSelfieAnalysis",
+    "LivenessDataSelfieAnalysisDetectionConfidence",
+    "LivenessDataSelfieAnalysisImageQuality",
+    "LivenessDataSelfieAnalysisIssuesItem",
+    "LivenessDataSelfieAnalysisOrientation",
     "LookupCurpRequestGender",
     "MatchFacesRequestDocumentType",
     "MatchFacesResponse",

@@ -45,6 +45,13 @@ if typing.TYPE_CHECKING:
     from .isste_record_data_personal_info import IssteRecordDataPersonalInfo
     from .isste_record_data_personal_info_gender import IssteRecordDataPersonalInfoGender
     from .isste_record_data_personal_info_marital_status import IssteRecordDataPersonalInfoMaritalStatus
+    from .liveness_data import LivenessData
+    from .liveness_data_confidence import LivenessDataConfidence
+    from .liveness_data_selfie_analysis import LivenessDataSelfieAnalysis
+    from .liveness_data_selfie_analysis_detection_confidence import LivenessDataSelfieAnalysisDetectionConfidence
+    from .liveness_data_selfie_analysis_image_quality import LivenessDataSelfieAnalysisImageQuality
+    from .liveness_data_selfie_analysis_issues_item import LivenessDataSelfieAnalysisIssuesItem
+    from .liveness_data_selfie_analysis_orientation import LivenessDataSelfieAnalysisOrientation
 _dynamic_imports: typing.Dict[str, str] = {
     "Asset": ".asset",
     "CepValidationData": ".cep_validation_data",
@@ -85,6 +92,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "IssteRecordDataPersonalInfo": ".isste_record_data_personal_info",
     "IssteRecordDataPersonalInfoGender": ".isste_record_data_personal_info_gender",
     "IssteRecordDataPersonalInfoMaritalStatus": ".isste_record_data_personal_info_marital_status",
+    "LivenessData": ".liveness_data",
+    "LivenessDataConfidence": ".liveness_data_confidence",
+    "LivenessDataSelfieAnalysis": ".liveness_data_selfie_analysis",
+    "LivenessDataSelfieAnalysisDetectionConfidence": ".liveness_data_selfie_analysis_detection_confidence",
+    "LivenessDataSelfieAnalysisImageQuality": ".liveness_data_selfie_analysis_image_quality",
+    "LivenessDataSelfieAnalysisIssuesItem": ".liveness_data_selfie_analysis_issues_item",
+    "LivenessDataSelfieAnalysisOrientation": ".liveness_data_selfie_analysis_orientation",
 }
 
 
@@ -149,4 +163,11 @@ __all__ = [
     "IssteRecordDataPersonalInfo",
     "IssteRecordDataPersonalInfoGender",
     "IssteRecordDataPersonalInfoMaritalStatus",
+    "LivenessData",
+    "LivenessDataConfidence",
+    "LivenessDataSelfieAnalysis",
+    "LivenessDataSelfieAnalysisDetectionConfidence",
+    "LivenessDataSelfieAnalysisImageQuality",
+    "LivenessDataSelfieAnalysisIssuesItem",
+    "LivenessDataSelfieAnalysisOrientation",
 ]

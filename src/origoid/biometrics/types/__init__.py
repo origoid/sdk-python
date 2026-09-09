@@ -6,9 +6,11 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
+    from .check_liveness_response import CheckLivenessResponse
     from .match_faces_request_document_type import MatchFacesRequestDocumentType
     from .match_faces_response import MatchFacesResponse
 _dynamic_imports: typing.Dict[str, str] = {
+    "CheckLivenessResponse": ".check_liveness_response",
     "MatchFacesRequestDocumentType": ".match_faces_request_document_type",
     "MatchFacesResponse": ".match_faces_response",
 }
@@ -35,4 +37,4 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["MatchFacesRequestDocumentType", "MatchFacesResponse"]
+__all__ = ["CheckLivenessResponse", "MatchFacesRequestDocumentType", "MatchFacesResponse"]
