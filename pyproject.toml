@@ -4,11 +4,28 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "origoid"
-version = "0.5.0"
-description = ""
+version = "0.5.1"
+description = "Official OrigoID SDK: identity verification API for Mexico — CURP (RENAPO), INE voter list, RFC (SAT), NSS (IMSS), OFAC/PEPs screening and face match."
 readme = "README.md"
 authors = []
-keywords = []
+keywords = [
+    "origoid",
+    "curp",
+    "renapo",
+    "ine",
+    "lista-nominal",
+    "rfc",
+    "sat",
+    "imss",
+    "nss",
+    "kyc",
+    "identity-verification",
+    "mexico",
+    "ofac",
+    "peps",
+    "face-match",
+    "validar-curp"
+]
 
 classifiers = [
     "Intended Audience :: Developers",
@@ -35,6 +52,8 @@ packages = [
 ]
 
 [tool.poetry.urls]
+Documentation = 'https://docs.origoid.com'
+Homepage = 'https://origoid.com'
 Repository = 'https://github.com/origoid/sdk-python'
 
 [tool.poetry.dependencies]

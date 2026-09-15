@@ -1,12 +1,30 @@
-# Origoid Python Library
+# OrigoID Python Library
 
 [![fern shield](https://img.shields.io/badge/%F0%9F%8C%BF-Built%20with%20Fern-brightgreen)](https://buildwithfern.com?utm_source=github&utm_medium=github&utm_campaign=readme&utm_source=https%3A%2F%2Fgithub.com%2Forigoid%2Fsdk-python)
 [![pypi](https://img.shields.io/pypi/v/origoid)](https://pypi.python.org/pypi/origoid)
 
-The Origoid Python library provides convenient access to the Origoid APIs from Python.
+Official SDK for OrigoID, a REST API for identity verification in Mexico.
+Validate a CURP against RENAPO, check an INE voter credential against the
+voter list (Lista Nominal), extract data from the INE card, validate RFC,
+tax status certificates (CSF) and CFDI invoices at SAT, look up an NSS at
+IMSS, screen against OFAC, PEPs and SAT 69 / 69-B lists, and compare faces.
+Every response uses the same envelope, so integration is a switch on `type`.
+Zero data retention: each request is validated, answered and discarded.
+
+**En español** — SDK oficial de OrigoID para verificación de identidad en México:
+validar CURP en RENAPO, vigencia de la credencial de elector en la Lista Nominal del
+INE, OCR de INE, RFC, Constancia de Situación Fiscal y CFDI en el SAT, NSS en el IMSS,
+búsqueda en OFAC, PEPs y listas SAT 69 y 69-B, y comparación facial. Cero retención
+de datos. Guías: [Validar CURP](https://origoid.com/validar-curp.html) ·
+[Validar INE / Lista Nominal](https://origoid.com/validar-ine.html) ·
+[OCR de INE](https://origoid.com/ocr-ine.html) · [Validar RFC](https://origoid.com/validar-rfc.html) ·
+[Comparación facial](https://origoid.com/comparacion-facial.html) ·
+[Documentación](https://docs.origoid.com) · [Estatus](https://status.origoid.com)
+
 
 ## Table of Contents
 
+- [Documentation](#documentation)
 - [Installation](#installation)
 - [Reference](#reference)
 - [Usage](#usage)
@@ -18,6 +36,10 @@ The Origoid Python library provides convenient access to the Origoid APIs from P
   - [Timeouts](#timeouts)
   - [Custom Client](#custom-client)
 - [Contributing](#contributing)
+
+## Documentation
+
+API reference documentation is available [here](https://docs.origoid.com).
 
 ## Installation
 
@@ -40,7 +62,9 @@ client = OrigoID(
     api_key="<value>",
 )
 
-client.authentication.issue_token()
+client.renapo.validate_curp(
+    curp="TEST900101HDFRRN09",
+)
 ```
 
 ## Async Client
@@ -58,7 +82,9 @@ client = AsyncOrigoID(
 
 
 async def main() -> None:
-    await client.authentication.issue_token()
+    await client.renapo.validate_curp(
+        curp="TEST900101HDFRRN09",
+    )
 
 
 asyncio.run(main())
@@ -73,7 +99,7 @@ will be thrown.
 from origoid.core.api_error import ApiError
 
 try:
-    client.authentication.issue_token(...)
+    client.renapo.validate_curp(...)
 except ApiError as e:
     print(e.status_code)
     print(e.body)
@@ -90,7 +116,7 @@ The `.with_raw_response` property returns a "raw" client that can be used to acc
 from origoid import OrigoID
 
 client = OrigoID(...)
-response = client.authentication.with_raw_response.issue_token(...)
+response = client.renapo.with_raw_response.validate_curp(...)
 print(response.headers)  # access the response headers
 print(response.status_code)  # access the response status code
 print(response.data)  # access the underlying object
@@ -111,7 +137,7 @@ A request is deemed retryable when any of the following HTTP status codes is ret
 Use the `max_retries` request option to configure this behavior.
 
 ```python
-client.authentication.issue_token(..., request_options={
+client.renapo.validate_curp(..., request_options={
     "max_retries": 1
 })
 ```
@@ -126,7 +152,7 @@ from origoid import OrigoID
 client = OrigoID(..., timeout=20.0)
 
 # Override timeout for a specific method
-client.authentication.issue_token(..., request_options={
+client.renapo.validate_curp(..., request_options={
     "timeout_in_seconds": 1
 })
 ```
