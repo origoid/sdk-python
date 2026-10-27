@@ -6,8 +6,16 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
+    from .create_imss_contribution_weeks_request_webhook import CreateImssContributionWeeksRequestWebhook
+    from .create_imss_employment_status_async_request_webhook import CreateImssEmploymentStatusAsyncRequestWebhook
+    from .create_imss_nss_lookup_async_request_webhook import CreateImssNssLookupAsyncRequestWebhook
     from .get_isste_record_response import GetIssteRecordResponse
-_dynamic_imports: typing.Dict[str, str] = {"GetIssteRecordResponse": ".get_isste_record_response"}
+_dynamic_imports: typing.Dict[str, str] = {
+    "CreateImssContributionWeeksRequestWebhook": ".create_imss_contribution_weeks_request_webhook",
+    "CreateImssEmploymentStatusAsyncRequestWebhook": ".create_imss_employment_status_async_request_webhook",
+    "CreateImssNssLookupAsyncRequestWebhook": ".create_imss_nss_lookup_async_request_webhook",
+    "GetIssteRecordResponse": ".get_isste_record_response",
+}
 
 
 def __getattr__(attr_name: str) -> typing.Any:
@@ -31,4 +39,9 @@ def __dir__():
     return sorted(lazy_attrs)
 
 
-__all__ = ["GetIssteRecordResponse"]
+__all__ = [
+    "CreateImssContributionWeeksRequestWebhook",
+    "CreateImssEmploymentStatusAsyncRequestWebhook",
+    "CreateImssNssLookupAsyncRequestWebhook",
+    "GetIssteRecordResponse",
+]

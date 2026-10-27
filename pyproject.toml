@@ -4,7 +4,7 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "origoid"
-version = "0.5.1"
+version = "0.6.0"
 description = "Official OrigoID SDK: identity verification API for Mexico — CURP (RENAPO), INE voter list, RFC (SAT), NSS (IMSS), OFAC/PEPs screening and face match."
 readme = "README.md"
 authors = []

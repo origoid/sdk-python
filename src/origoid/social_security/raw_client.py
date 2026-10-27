@@ -9,9 +9,13 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..core.serialization import convert_and_respect_annotation_metadata
 from ..errors.too_many_requests_error import TooManyRequestsError
 from ..errors.unauthorized_error import UnauthorizedError
 from ..types.envelope import Envelope
+from .types.create_imss_contribution_weeks_request_webhook import CreateImssContributionWeeksRequestWebhook
+from .types.create_imss_employment_status_async_request_webhook import CreateImssEmploymentStatusAsyncRequestWebhook
+from .types.create_imss_nss_lookup_async_request_webhook import CreateImssNssLookupAsyncRequestWebhook
 from .types.get_isste_record_response import GetIssteRecordResponse
 from pydantic import ValidationError
 
@@ -32,6 +36,8 @@ class RawSocialSecurityClient:
         Retrieves a worker's NSS (Número de Seguridad Social) from IMSS based on CURP. Returns the 11-digit NSS.
 
         Use this endpoint when onboarding employees for payroll or social-security registration: a CURP is far easier to collect than asking the candidate for their NSS card, which is frequently misplaced.
+
+        **First-time CURPs:** for a CURP queried for the first time, use [Get NSS (Async)](get-nss-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
 
         Parameters
         ----------
@@ -98,8 +104,101 @@ class RawSocialSecurityClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def create_imss_nss_lookup_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssNssLookupAsyncRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[Envelope]:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free.
+
+        Asynchronous version of **Get NSS**: retrieves a worker's NSS (Número de Seguridad Social) from IMSS based on CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types as **Get NSS** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#get-nss-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssNssLookupAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-nss-lookup-async",
+            method="POST",
+            json={
+                "curp": curp,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssNssLookupAsyncRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def get_imss_employment_status(
-        self, *, curp: str, nss: str, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        curp: str,
+        nss: str,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[Envelope]:
         """
         **Credits:** 1 per call.
@@ -108,11 +207,18 @@ class RawSocialSecurityClient:
 
         Use this endpoint for income verification (lending, leasing), employment confirmation (background checks), or to detect overlapping employment when complying with employment regulations.
 
+        Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]` (`kind: document`, base64) — no extra credits. `reportDetails` describes that report: `reportPeriod` (month the report covers), `issueDate`, `currentMonth` (current month according to IMSS, the month of `issueDate`) and `nextReportMonth` (month in which IMSS will publish the next report).
+
+        **First-time CURPs:** for a CURP queried for the first time, use [Employment Status (Async)](employment-status-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
 
         nss : str
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -128,6 +234,276 @@ class RawSocialSecurityClient:
             json={
                 "curp": curp,
                 "nss": nss,
+                "includePdf": include_pdf,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def create_imss_employment_status_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssEmploymentStatusAsyncRequestWebhook,
+        nss: typing.Optional[str] = OMIT,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[Envelope]:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free. `includePdf` adds no extra credits.
+
+        Asynchronous version of **Employment Status**: returns the current IMSS employment status of a worker identified by CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        `nss` is optional: when you send it, it is checked against the NSS registered for the CURP and a difference returns `MISMATCH_CURP_NSS`. Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]`.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types and `data` as **Employment Status** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#employment-status-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssEmploymentStatusAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        nss : typing.Optional[str]
+            Optional 11-digit NSS, checked against the NSS registered for the CURP.
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-employment-status-async",
+            method="POST",
+            json={
+                "curp": curp,
+                "nss": nss,
+                "includePdf": include_pdf,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssEmploymentStatusAsyncRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def create_imss_contribution_weeks(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssContributionWeeksRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[Envelope]:
+        """
+        **Credits:** 3 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement and **Contribution Weeks Result** are free.
+
+        Retrieves a worker's official IMSS **Certificate of Contributed Weeks** (*Constancia de Semanas Cotizadas*) from their CURP: the official PDF issued by IMSS (with folio and digital seal), the full employment history parsed into JSON, and signals derived from that history (tenure, stability, salary evolution).
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook. If your webhook could not receive it, you can fetch it for 24 hours with **Contribution Weeks Result**. Every result type, with its example, and how to read `data`, are in the [Webhooks guide](../../webhooks#contribution-weeks).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssContributionWeeksRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-contribution-weeks",
+            method="POST",
+            json={
+                "curp": curp,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssContributionWeeksRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def get_imss_contribution_weeks_result(
+        self, *, transaction_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[Envelope]:
+        """
+        **Credits:** 0 (free).
+
+        Fallback to fetch the result of a **Contribution Weeks** request when your webhook could not receive it. Results are available for **24 hours** after the request resolved. The result is always sent to your webhook, so use this endpoint only as a fallback, not to poll.
+
+        Send the `transactionId` returned by Contribution Weeks:
+
+        - `RESULT_FOUND`: `data` contains the original result envelope, exactly as delivered to the webhook, with its own `transactionId` (the one that was charged). The outer envelope describes this free query.
+        - `RESULT_PENDING`: the request is still being processed; the result will be sent to your webhook.
+        - `RESULT_EXPIRED`: more than 24 hours have passed; the result is no longer available.
+        - `INVALID_REQUEST`: the `transactionId` does not exist or belongs to another client (both answer the same way).
+
+        Parameters
+        ----------
+        transaction_id : str
+            The `transactionId` returned by Contribution Weeks.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[Envelope]
+            Business Responses (Strict Envelope Pattern).
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-contribution-weeks-results",
+            method="POST",
+            json={
+                "transactionId": transaction_id,
             },
             headers={
                 "content-type": "application/json",
@@ -269,6 +645,8 @@ class AsyncRawSocialSecurityClient:
 
         Use this endpoint when onboarding employees for payroll or social-security registration: a CURP is far easier to collect than asking the candidate for their NSS card, which is frequently misplaced.
 
+        **First-time CURPs:** for a CURP queried for the first time, use [Get NSS (Async)](get-nss-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
@@ -334,8 +712,101 @@ class AsyncRawSocialSecurityClient:
             )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def create_imss_nss_lookup_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssNssLookupAsyncRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[Envelope]:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free.
+
+        Asynchronous version of **Get NSS**: retrieves a worker's NSS (Número de Seguridad Social) from IMSS based on CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types as **Get NSS** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#get-nss-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssNssLookupAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-nss-lookup-async",
+            method="POST",
+            json={
+                "curp": curp,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssNssLookupAsyncRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def get_imss_employment_status(
-        self, *, curp: str, nss: str, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        curp: str,
+        nss: str,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[Envelope]:
         """
         **Credits:** 1 per call.
@@ -344,11 +815,18 @@ class AsyncRawSocialSecurityClient:
 
         Use this endpoint for income verification (lending, leasing), employment confirmation (background checks), or to detect overlapping employment when complying with employment regulations.
 
+        Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]` (`kind: document`, base64) — no extra credits. `reportDetails` describes that report: `reportPeriod` (month the report covers), `issueDate`, `currentMonth` (current month according to IMSS, the month of `issueDate`) and `nextReportMonth` (month in which IMSS will publish the next report).
+
+        **First-time CURPs:** for a CURP queried for the first time, use [Employment Status (Async)](employment-status-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
 
         nss : str
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -364,6 +842,276 @@ class AsyncRawSocialSecurityClient:
             json={
                 "curp": curp,
                 "nss": nss,
+                "includePdf": include_pdf,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def create_imss_employment_status_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssEmploymentStatusAsyncRequestWebhook,
+        nss: typing.Optional[str] = OMIT,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[Envelope]:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free. `includePdf` adds no extra credits.
+
+        Asynchronous version of **Employment Status**: returns the current IMSS employment status of a worker identified by CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        `nss` is optional: when you send it, it is checked against the NSS registered for the CURP and a difference returns `MISMATCH_CURP_NSS`. Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]`.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types and `data` as **Employment Status** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#employment-status-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssEmploymentStatusAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        nss : typing.Optional[str]
+            Optional 11-digit NSS, checked against the NSS registered for the CURP.
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-employment-status-async",
+            method="POST",
+            json={
+                "curp": curp,
+                "nss": nss,
+                "includePdf": include_pdf,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssEmploymentStatusAsyncRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def create_imss_contribution_weeks(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssContributionWeeksRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[Envelope]:
+        """
+        **Credits:** 3 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement and **Contribution Weeks Result** are free.
+
+        Retrieves a worker's official IMSS **Certificate of Contributed Weeks** (*Constancia de Semanas Cotizadas*) from their CURP: the official PDF issued by IMSS (with folio and digital seal), the full employment history parsed into JSON, and signals derived from that history (tenure, stability, salary evolution).
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook. If your webhook could not receive it, you can fetch it for 24 hours with **Contribution Weeks Result**. Every result type, with its example, and how to read `data`, are in the [Webhooks guide](../../webhooks#contribution-weeks).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssContributionWeeksRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[Envelope]
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-contribution-weeks",
+            method="POST",
+            json={
+                "curp": curp,
+                "webhook": convert_and_respect_annotation_metadata(
+                    object_=webhook, annotation=CreateImssContributionWeeksRequestWebhook, direction="write"
+                ),
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    Envelope,
+                    parse_obj_as(
+                        type_=Envelope,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 429:
+                raise TooManyRequestsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        Envelope,
+                        parse_obj_as(
+                            type_=Envelope,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get_imss_contribution_weeks_result(
+        self, *, transaction_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[Envelope]:
+        """
+        **Credits:** 0 (free).
+
+        Fallback to fetch the result of a **Contribution Weeks** request when your webhook could not receive it. Results are available for **24 hours** after the request resolved. The result is always sent to your webhook, so use this endpoint only as a fallback, not to poll.
+
+        Send the `transactionId` returned by Contribution Weeks:
+
+        - `RESULT_FOUND`: `data` contains the original result envelope, exactly as delivered to the webhook, with its own `transactionId` (the one that was charged). The outer envelope describes this free query.
+        - `RESULT_PENDING`: the request is still being processed; the result will be sent to your webhook.
+        - `RESULT_EXPIRED`: more than 24 hours have passed; the result is no longer available.
+        - `INVALID_REQUEST`: the `transactionId` does not exist or belongs to another client (both answer the same way).
+
+        Parameters
+        ----------
+        transaction_id : str
+            The `transactionId` returned by Contribution Weeks.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[Envelope]
+            Business Responses (Strict Envelope Pattern).
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "mex/social-security/v1/imss-contribution-weeks-results",
+            method="POST",
+            json={
+                "transactionId": transaction_id,
             },
             headers={
                 "content-type": "application/json",

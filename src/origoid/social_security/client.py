@@ -6,6 +6,9 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.envelope import Envelope
 from .raw_client import AsyncRawSocialSecurityClient, RawSocialSecurityClient
+from .types.create_imss_contribution_weeks_request_webhook import CreateImssContributionWeeksRequestWebhook
+from .types.create_imss_employment_status_async_request_webhook import CreateImssEmploymentStatusAsyncRequestWebhook
+from .types.create_imss_nss_lookup_async_request_webhook import CreateImssNssLookupAsyncRequestWebhook
 from .types.get_isste_record_response import GetIssteRecordResponse
 
 # this is used as the default value for optional parameters
@@ -35,6 +38,8 @@ class SocialSecurityClient:
 
         Use this endpoint when onboarding employees for payroll or social-security registration: a CURP is far easier to collect than asking the candidate for their NSS card, which is frequently misplaced.
 
+        **First-time CURPs:** for a CURP queried for the first time, use [Get NSS (Async)](get-nss-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
@@ -61,8 +66,65 @@ class SocialSecurityClient:
         _response = self._raw_client.lookup_imss_nss(curp=curp, request_options=request_options)
         return _response.data
 
+    def create_imss_nss_lookup_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssNssLookupAsyncRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free.
+
+        Asynchronous version of **Get NSS**: retrieves a worker's NSS (Número de Seguridad Social) from IMSS based on CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types as **Get NSS** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#get-nss-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssNssLookupAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        from origoid import OrigoID
+        from origoid.social_security import CreateImssNssLookupAsyncRequestWebhook
+
+        client = OrigoID(
+            api_key="YOUR_API_KEY",
+        )
+        client.social_security.create_imss_nss_lookup_async(
+            curp="ALMR900805HDFRZA09",
+            webhook=CreateImssNssLookupAsyncRequestWebhook(
+                url="https://your-domain.com/hooks/origoid",
+            ),
+        )
+        """
+        _response = self._raw_client.create_imss_nss_lookup_async(
+            curp=curp, webhook=webhook, request_options=request_options
+        )
+        return _response.data
+
     def get_imss_employment_status(
-        self, *, curp: str, nss: str, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        curp: str,
+        nss: str,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> Envelope:
         """
         **Credits:** 1 per call.
@@ -71,11 +133,18 @@ class SocialSecurityClient:
 
         Use this endpoint for income verification (lending, leasing), employment confirmation (background checks), or to detect overlapping employment when complying with employment regulations.
 
+        Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]` (`kind: document`, base64) — no extra credits. `reportDetails` describes that report: `reportPeriod` (month the report covers), `issueDate`, `currentMonth` (current month according to IMSS, the month of `issueDate`) and `nextReportMonth` (month in which IMSS will publish the next report).
+
+        **First-time CURPs:** for a CURP queried for the first time, use [Employment Status (Async)](employment-status-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
 
         nss : str
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -97,7 +166,169 @@ class SocialSecurityClient:
             nss="92038109713",
         )
         """
-        _response = self._raw_client.get_imss_employment_status(curp=curp, nss=nss, request_options=request_options)
+        _response = self._raw_client.get_imss_employment_status(
+            curp=curp, nss=nss, include_pdf=include_pdf, request_options=request_options
+        )
+        return _response.data
+
+    def create_imss_employment_status_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssEmploymentStatusAsyncRequestWebhook,
+        nss: typing.Optional[str] = OMIT,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free. `includePdf` adds no extra credits.
+
+        Asynchronous version of **Employment Status**: returns the current IMSS employment status of a worker identified by CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        `nss` is optional: when you send it, it is checked against the NSS registered for the CURP and a difference returns `MISMATCH_CURP_NSS`. Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]`.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types and `data` as **Employment Status** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#employment-status-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssEmploymentStatusAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        nss : typing.Optional[str]
+            Optional 11-digit NSS, checked against the NSS registered for the CURP.
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        from origoid import OrigoID
+        from origoid.social_security import (
+            CreateImssEmploymentStatusAsyncRequestWebhook,
+        )
+
+        client = OrigoID(
+            api_key="YOUR_API_KEY",
+        )
+        client.social_security.create_imss_employment_status_async(
+            curp="GARM900101HDFRZA01",
+            webhook=CreateImssEmploymentStatusAsyncRequestWebhook(
+                url="https://your-domain.com/hooks/origoid",
+            ),
+        )
+        """
+        _response = self._raw_client.create_imss_employment_status_async(
+            curp=curp, webhook=webhook, nss=nss, include_pdf=include_pdf, request_options=request_options
+        )
+        return _response.data
+
+    def create_imss_contribution_weeks(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssContributionWeeksRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 3 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement and **Contribution Weeks Result** are free.
+
+        Retrieves a worker's official IMSS **Certificate of Contributed Weeks** (*Constancia de Semanas Cotizadas*) from their CURP: the official PDF issued by IMSS (with folio and digital seal), the full employment history parsed into JSON, and signals derived from that history (tenure, stability, salary evolution).
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook. If your webhook could not receive it, you can fetch it for 24 hours with **Contribution Weeks Result**. Every result type, with its example, and how to read `data`, are in the [Webhooks guide](../../webhooks#contribution-weeks).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssContributionWeeksRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        from origoid import OrigoID
+        from origoid.social_security import CreateImssContributionWeeksRequestWebhook
+
+        client = OrigoID(
+            api_key="YOUR_API_KEY",
+        )
+        client.social_security.create_imss_contribution_weeks(
+            curp="RATL850312HDFMRS07",
+            webhook=CreateImssContributionWeeksRequestWebhook(
+                url="https://your-domain.com/hooks/origoid",
+            ),
+        )
+        """
+        _response = self._raw_client.create_imss_contribution_weeks(
+            curp=curp, webhook=webhook, request_options=request_options
+        )
+        return _response.data
+
+    def get_imss_contribution_weeks_result(
+        self, *, transaction_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> Envelope:
+        """
+        **Credits:** 0 (free).
+
+        Fallback to fetch the result of a **Contribution Weeks** request when your webhook could not receive it. Results are available for **24 hours** after the request resolved. The result is always sent to your webhook, so use this endpoint only as a fallback, not to poll.
+
+        Send the `transactionId` returned by Contribution Weeks:
+
+        - `RESULT_FOUND`: `data` contains the original result envelope, exactly as delivered to the webhook, with its own `transactionId` (the one that was charged). The outer envelope describes this free query.
+        - `RESULT_PENDING`: the request is still being processed; the result will be sent to your webhook.
+        - `RESULT_EXPIRED`: more than 24 hours have passed; the result is no longer available.
+        - `INVALID_REQUEST`: the `transactionId` does not exist or belongs to another client (both answer the same way).
+
+        Parameters
+        ----------
+        transaction_id : str
+            The `transactionId` returned by Contribution Weeks.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Business Responses (Strict Envelope Pattern).
+
+        Examples
+        --------
+        from origoid import OrigoID
+
+        client = OrigoID(
+            api_key="YOUR_API_KEY",
+        )
+        client.social_security.get_imss_contribution_weeks_result(
+            transaction_id="975cf12f-f270-51cc-9037-d710134940c9",
+        )
+        """
+        _response = self._raw_client.get_imss_contribution_weeks_result(
+            transaction_id=transaction_id, request_options=request_options
+        )
         return _response.data
 
     def get_isste_record(
@@ -163,6 +394,8 @@ class AsyncSocialSecurityClient:
 
         Use this endpoint when onboarding employees for payroll or social-security registration: a CURP is far easier to collect than asking the candidate for their NSS card, which is frequently misplaced.
 
+        **First-time CURPs:** for a CURP queried for the first time, use [Get NSS (Async)](get-nss-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
@@ -197,8 +430,73 @@ class AsyncSocialSecurityClient:
         _response = await self._raw_client.lookup_imss_nss(curp=curp, request_options=request_options)
         return _response.data
 
+    async def create_imss_nss_lookup_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssNssLookupAsyncRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free.
+
+        Asynchronous version of **Get NSS**: retrieves a worker's NSS (Número de Seguridad Social) from IMSS based on CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types as **Get NSS** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#get-nss-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssNssLookupAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        import asyncio
+
+        from origoid import AsyncOrigoID
+        from origoid.social_security import CreateImssNssLookupAsyncRequestWebhook
+
+        client = AsyncOrigoID(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.social_security.create_imss_nss_lookup_async(
+                curp="ALMR900805HDFRZA09",
+                webhook=CreateImssNssLookupAsyncRequestWebhook(
+                    url="https://your-domain.com/hooks/origoid",
+                ),
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.create_imss_nss_lookup_async(
+            curp=curp, webhook=webhook, request_options=request_options
+        )
+        return _response.data
+
     async def get_imss_employment_status(
-        self, *, curp: str, nss: str, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        curp: str,
+        nss: str,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> Envelope:
         """
         **Credits:** 1 per call.
@@ -207,11 +505,18 @@ class AsyncSocialSecurityClient:
 
         Use this endpoint for income verification (lending, leasing), employment confirmation (background checks), or to detect overlapping employment when complying with employment regulations.
 
+        Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]` (`kind: document`, base64) — no extra credits. `reportDetails` describes that report: `reportPeriod` (month the report covers), `issueDate`, `currentMonth` (current month according to IMSS, the month of `issueDate`) and `nextReportMonth` (month in which IMSS will publish the next report).
+
+        **First-time CURPs:** for a CURP queried for the first time, use [Employment Status (Async)](employment-status-async) — the synchronous lookup can answer `SERVICE_UNAVAILABLE` for it.
+
         Parameters
         ----------
         curp : str
 
         nss : str
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -242,7 +547,191 @@ class AsyncSocialSecurityClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_imss_employment_status(
-            curp=curp, nss=nss, request_options=request_options
+            curp=curp, nss=nss, include_pdf=include_pdf, request_options=request_options
+        )
+        return _response.data
+
+    async def create_imss_employment_status_async(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssEmploymentStatusAsyncRequestWebhook,
+        nss: typing.Optional[str] = OMIT,
+        include_pdf: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 2 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement is free. `includePdf` adds no extra credits.
+
+        Asynchronous version of **Employment Status**: returns the current IMSS employment status of a worker identified by CURP and delivers the result to your webhook instead of keeping the HTTP request open.
+
+        `nss` is optional: when you send it, it is checked against the NSS registered for the CURP and a difference returns `MISMATCH_CURP_NSS`. Set `includePdf: true` to also receive the official IMSS report as a PDF in `data.files[]`.
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook with the same result types and `data` as **Employment Status** (except `INVALID_REQUEST`, which is returned immediately). Every result type, with its example, is in the [Webhooks guide](../../webhooks#employment-status-async).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssEmploymentStatusAsyncRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        nss : typing.Optional[str]
+            Optional 11-digit NSS, checked against the NSS registered for the CURP.
+
+        include_pdf : typing.Optional[bool]
+            Also return the official IMSS report as a PDF in `data.files[]`. No extra credits.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        import asyncio
+
+        from origoid import AsyncOrigoID
+        from origoid.social_security import (
+            CreateImssEmploymentStatusAsyncRequestWebhook,
+        )
+
+        client = AsyncOrigoID(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.social_security.create_imss_employment_status_async(
+                curp="GARM900101HDFRZA01",
+                webhook=CreateImssEmploymentStatusAsyncRequestWebhook(
+                    url="https://your-domain.com/hooks/origoid",
+                ),
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.create_imss_employment_status_async(
+            curp=curp, webhook=webhook, nss=nss, include_pdf=include_pdf, request_options=request_options
+        )
+        return _response.data
+
+    async def create_imss_contribution_weeks(
+        self,
+        *,
+        curp: str,
+        webhook: CreateImssContributionWeeksRequestWebhook,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> Envelope:
+        """
+        **Credits:** 3 per resolved request — charged when the result resolves; the `ACCEPTED` acknowledgement and **Contribution Weeks Result** are free.
+
+        Retrieves a worker's official IMSS **Certificate of Contributed Weeks** (*Constancia de Semanas Cotizadas*) from their CURP: the official PDF issued by IMSS (with folio and digital seal), the full employment history parsed into JSON, and signals derived from that history (tenure, stability, salary evolution).
+
+        **Immediate response:** `ACCEPTED` with the `transactionId`, or `INVALID_REQUEST` if the request is not valid.
+
+        **Result:** delivered to your webhook. If your webhook could not receive it, you can fetch it for 24 hours with **Contribution Weeks Result**. Every result type, with its example, and how to read `data`, are in the [Webhooks guide](../../webhooks#contribution-weeks).
+
+        Parameters
+        ----------
+        curp : str
+            18-character CURP.
+
+        webhook : CreateImssContributionWeeksRequestWebhook
+            Where the result of an asynchronous request is delivered (HTTP POST with a JSON body).
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Immediate response (Strict Envelope Pattern). The result is delivered to your webhook.
+
+        Examples
+        --------
+        import asyncio
+
+        from origoid import AsyncOrigoID
+        from origoid.social_security import CreateImssContributionWeeksRequestWebhook
+
+        client = AsyncOrigoID(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.social_security.create_imss_contribution_weeks(
+                curp="RATL850312HDFMRS07",
+                webhook=CreateImssContributionWeeksRequestWebhook(
+                    url="https://your-domain.com/hooks/origoid",
+                ),
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.create_imss_contribution_weeks(
+            curp=curp, webhook=webhook, request_options=request_options
+        )
+        return _response.data
+
+    async def get_imss_contribution_weeks_result(
+        self, *, transaction_id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> Envelope:
+        """
+        **Credits:** 0 (free).
+
+        Fallback to fetch the result of a **Contribution Weeks** request when your webhook could not receive it. Results are available for **24 hours** after the request resolved. The result is always sent to your webhook, so use this endpoint only as a fallback, not to poll.
+
+        Send the `transactionId` returned by Contribution Weeks:
+
+        - `RESULT_FOUND`: `data` contains the original result envelope, exactly as delivered to the webhook, with its own `transactionId` (the one that was charged). The outer envelope describes this free query.
+        - `RESULT_PENDING`: the request is still being processed; the result will be sent to your webhook.
+        - `RESULT_EXPIRED`: more than 24 hours have passed; the result is no longer available.
+        - `INVALID_REQUEST`: the `transactionId` does not exist or belongs to another client (both answer the same way).
+
+        Parameters
+        ----------
+        transaction_id : str
+            The `transactionId` returned by Contribution Weeks.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        Envelope
+            Business Responses (Strict Envelope Pattern).
+
+        Examples
+        --------
+        import asyncio
+
+        from origoid import AsyncOrigoID
+
+        client = AsyncOrigoID(
+            api_key="YOUR_API_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.social_security.get_imss_contribution_weeks_result(
+                transaction_id="975cf12f-f270-51cc-9037-d710134940c9",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_imss_contribution_weeks_result(
+            transaction_id=transaction_id, request_options=request_options
         )
         return _response.data
 

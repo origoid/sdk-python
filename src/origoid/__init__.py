@@ -75,7 +75,12 @@ if typing.TYPE_CHECKING:
     from .fiscal import ExtractCsfRequest, ValidateCfdiRequest
     from .ine import ValidateVoterListRequest
     from .renapo import LookupCurpRequestGender
-    from .social_security import GetIssteRecordResponse
+    from .social_security import (
+        CreateImssContributionWeeksRequestWebhook,
+        CreateImssEmploymentStatusAsyncRequestWebhook,
+        CreateImssNssLookupAsyncRequestWebhook,
+        GetIssteRecordResponse,
+    )
     from .version import __version__
 _dynamic_imports: typing.Dict[str, str] = {
     "Asset": ".types",
@@ -90,6 +95,9 @@ _dynamic_imports: typing.Dict[str, str] = {
     "CepValidationDataSpei": ".types",
     "CepValidationDataTimeline": ".types",
     "CheckLivenessResponse": ".biometrics",
+    "CreateImssContributionWeeksRequestWebhook": ".social_security",
+    "CreateImssEmploymentStatusAsyncRequestWebhook": ".social_security",
+    "CreateImssNssLookupAsyncRequestWebhook": ".social_security",
     "Envelope": ".types",
     "EnvelopeStatus": ".types",
     "ErrorDetail": ".types",
@@ -190,6 +198,9 @@ __all__ = [
     "CepValidationDataSpei",
     "CepValidationDataTimeline",
     "CheckLivenessResponse",
+    "CreateImssContributionWeeksRequestWebhook",
+    "CreateImssEmploymentStatusAsyncRequestWebhook",
+    "CreateImssNssLookupAsyncRequestWebhook",
     "Envelope",
     "EnvelopeStatus",
     "ErrorDetail",
