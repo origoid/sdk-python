@@ -4,8 +4,8 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "origoid"
-version = "0.6.1"
-description = "Official OrigoID SDK: identity verification API for Mexico — CURP (RENAPO), INE voter list, RFC (SAT), NSS (IMSS), OFAC/PEPs screening and face match."
+version = "0.6.2"
+description = "Official OrigoID SDK: identity verification API for Mexico — CURP (RENAPO), INE voter list, OCR and QR, RFC, CSF and CFDI (SAT), IMSS employment, contribution weeks and NSS, ISSSTE, OFAC/PEPs/SAT 69-B screening, face match, liveness, proof of address, CEP (SPEI) and email validation."
 readme = "README.md"
 authors = []
 keywords = [
@@ -24,7 +24,23 @@ keywords = [
     "ofac",
     "peps",
     "face-match",
-    "validar-curp"
+    "validar-curp",
+    "validar-ine",
+    "validar-rfc",
+    "semanas-cotizadas",
+    "employment-verification",
+    "kyc-mexico",
+    "sat-69b",
+    "csf",
+    "cfdi",
+    "issste",
+    "liveness",
+    "prueba-de-vida",
+    "proof-of-address",
+    "comprobante-de-domicilio",
+    "cep",
+    "spei",
+    "email-validation"
 ]
 
 classifiers = [
