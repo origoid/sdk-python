@@ -14,6 +14,7 @@ if typing.TYPE_CHECKING:
     from .banking.client import AsyncBankingClient, BankingClient
     from .biometrics.client import AsyncBiometricsClient, BiometricsClient
     from .compliance.client import AsyncComplianceClient, ComplianceClient
+    from .education.client import AsyncEducationClient, EducationClient
     from .email.client import AsyncEmailClient, EmailClient
     from .fiscal.client import AsyncFiscalClient, FiscalClient
     from .ine.client import AsyncIneClient, IneClient
@@ -102,6 +103,7 @@ class OrigoID:
         self._proof_of_address: typing.Optional[ProofOfAddressClient] = None
         self._fiscal: typing.Optional[FiscalClient] = None
         self._banking: typing.Optional[BankingClient] = None
+        self._education: typing.Optional[EducationClient] = None
 
     @property
     def authentication(self):
@@ -182,6 +184,14 @@ class OrigoID:
 
             self._banking = BankingClient(client_wrapper=self._client_wrapper)
         return self._banking
+
+    @property
+    def education(self):
+        if self._education is None:
+            from .education.client import EducationClient  # noqa: E402
+
+            self._education = EducationClient(client_wrapper=self._client_wrapper)
+        return self._education
 
 
 class AsyncOrigoID:
@@ -264,6 +274,7 @@ class AsyncOrigoID:
         self._proof_of_address: typing.Optional[AsyncProofOfAddressClient] = None
         self._fiscal: typing.Optional[AsyncFiscalClient] = None
         self._banking: typing.Optional[AsyncBankingClient] = None
+        self._education: typing.Optional[AsyncEducationClient] = None
 
     @property
     def authentication(self):
@@ -344,6 +355,14 @@ class AsyncOrigoID:
 
             self._banking = AsyncBankingClient(client_wrapper=self._client_wrapper)
         return self._banking
+
+    @property
+    def education(self):
+        if self._education is None:
+            from .education.client import AsyncEducationClient  # noqa: E402
+
+            self._education = AsyncEducationClient(client_wrapper=self._client_wrapper)
+        return self._education
 
 
 def _get_base_url(*, base_url: typing.Optional[str] = None, environment: OrigoIDEnvironment) -> str:

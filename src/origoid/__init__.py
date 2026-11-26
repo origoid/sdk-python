@@ -53,6 +53,13 @@ if typing.TYPE_CHECKING:
         LivenessDataSelfieAnalysisImageQuality,
         LivenessDataSelfieAnalysisIssuesItem,
         LivenessDataSelfieAnalysisOrientation,
+        ProfessionalLicenseSearchData,
+        ProfessionalLicenseSearchDataMatchesItem,
+        ProfessionalLicenseSearchDataMatchesItemLicensesItem,
+        ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry,
+        ProfessionalLicenseSearchDataMatchesItemPersonalInfo,
+        ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender,
+        ProfessionalLicenseSearchDataMatchesItemSummary,
     )
     from .errors import TooManyRequestsError, UnauthorizedError
     from . import (
@@ -60,6 +67,7 @@ if typing.TYPE_CHECKING:
         banking,
         biometrics,
         compliance,
+        education,
         email,
         fiscal,
         ine,
@@ -71,6 +79,7 @@ if typing.TYPE_CHECKING:
     from .biometrics import CheckLivenessResponse, MatchFacesRequestDocumentType, MatchFacesResponse
     from .client import AsyncOrigoID, OrigoID
     from .compliance import SearchPepsRequest, SearchSat69BRequest, SearchSat69Request
+    from .education import SearchProfessionalLicensesRequest, SearchProfessionalLicensesResponse
     from .environment import OrigoIDEnvironment
     from .fiscal import ExtractCsfRequest, ValidateCfdiRequest
     from .ine import ValidateVoterListRequest
@@ -141,7 +150,16 @@ _dynamic_imports: typing.Dict[str, str] = {
     "MatchFacesResponse": ".biometrics",
     "OrigoID": ".client",
     "OrigoIDEnvironment": ".environment",
+    "ProfessionalLicenseSearchData": ".types",
+    "ProfessionalLicenseSearchDataMatchesItem": ".types",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItem": ".types",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry": ".types",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfo": ".types",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender": ".types",
+    "ProfessionalLicenseSearchDataMatchesItemSummary": ".types",
     "SearchPepsRequest": ".compliance",
+    "SearchProfessionalLicensesRequest": ".education",
+    "SearchProfessionalLicensesResponse": ".education",
     "SearchSat69BRequest": ".compliance",
     "SearchSat69Request": ".compliance",
     "TooManyRequestsError": ".errors",
@@ -155,6 +173,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "banking": ".banking",
     "biometrics": ".biometrics",
     "compliance": ".compliance",
+    "education": ".education",
     "email": ".email",
     "fiscal": ".fiscal",
     "ine": ".ine",
@@ -244,7 +263,16 @@ __all__ = [
     "MatchFacesResponse",
     "OrigoID",
     "OrigoIDEnvironment",
+    "ProfessionalLicenseSearchData",
+    "ProfessionalLicenseSearchDataMatchesItem",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItem",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfo",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender",
+    "ProfessionalLicenseSearchDataMatchesItemSummary",
     "SearchPepsRequest",
+    "SearchProfessionalLicensesRequest",
+    "SearchProfessionalLicensesResponse",
     "SearchSat69BRequest",
     "SearchSat69Request",
     "TooManyRequestsError",
@@ -258,6 +286,7 @@ __all__ = [
     "banking",
     "biometrics",
     "compliance",
+    "education",
     "email",
     "fiscal",
     "ine",

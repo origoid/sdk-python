@@ -52,6 +52,21 @@ if typing.TYPE_CHECKING:
     from .liveness_data_selfie_analysis_image_quality import LivenessDataSelfieAnalysisImageQuality
     from .liveness_data_selfie_analysis_issues_item import LivenessDataSelfieAnalysisIssuesItem
     from .liveness_data_selfie_analysis_orientation import LivenessDataSelfieAnalysisOrientation
+    from .professional_license_search_data import ProfessionalLicenseSearchData
+    from .professional_license_search_data_matches_item import ProfessionalLicenseSearchDataMatchesItem
+    from .professional_license_search_data_matches_item_licenses_item import (
+        ProfessionalLicenseSearchDataMatchesItemLicensesItem,
+    )
+    from .professional_license_search_data_matches_item_licenses_item_registry import (
+        ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry,
+    )
+    from .professional_license_search_data_matches_item_personal_info import (
+        ProfessionalLicenseSearchDataMatchesItemPersonalInfo,
+    )
+    from .professional_license_search_data_matches_item_personal_info_gender import (
+        ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender,
+    )
+    from .professional_license_search_data_matches_item_summary import ProfessionalLicenseSearchDataMatchesItemSummary
 _dynamic_imports: typing.Dict[str, str] = {
     "Asset": ".asset",
     "CepValidationData": ".cep_validation_data",
@@ -99,6 +114,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "LivenessDataSelfieAnalysisImageQuality": ".liveness_data_selfie_analysis_image_quality",
     "LivenessDataSelfieAnalysisIssuesItem": ".liveness_data_selfie_analysis_issues_item",
     "LivenessDataSelfieAnalysisOrientation": ".liveness_data_selfie_analysis_orientation",
+    "ProfessionalLicenseSearchData": ".professional_license_search_data",
+    "ProfessionalLicenseSearchDataMatchesItem": ".professional_license_search_data_matches_item",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItem": ".professional_license_search_data_matches_item_licenses_item",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry": ".professional_license_search_data_matches_item_licenses_item_registry",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfo": ".professional_license_search_data_matches_item_personal_info",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender": ".professional_license_search_data_matches_item_personal_info_gender",
+    "ProfessionalLicenseSearchDataMatchesItemSummary": ".professional_license_search_data_matches_item_summary",
 }
 
 
@@ -170,4 +192,11 @@ __all__ = [
     "LivenessDataSelfieAnalysisImageQuality",
     "LivenessDataSelfieAnalysisIssuesItem",
     "LivenessDataSelfieAnalysisOrientation",
+    "ProfessionalLicenseSearchData",
+    "ProfessionalLicenseSearchDataMatchesItem",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItem",
+    "ProfessionalLicenseSearchDataMatchesItemLicensesItemRegistry",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfo",
+    "ProfessionalLicenseSearchDataMatchesItemPersonalInfoGender",
+    "ProfessionalLicenseSearchDataMatchesItemSummary",
 ]
